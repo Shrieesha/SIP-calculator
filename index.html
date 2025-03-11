@@ -91,19 +91,41 @@ function downloadPDF() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
 
-    pdf.text("SIP Calculator Results", 10, 10);
+    pdf.setFontSize(14);
+    pdf.text("SIP Calculator Results", 14, 15);
 
     const table = document.getElementById('resultTable');
     const rows = table.querySelectorAll('tr');
 
-    let y = 20;
+    let y = 30;
+    let pageHeight = pdf.internal.pageSize.height;
+    let rowHeight = 10;
 
-    rows.forEach(row => {
+    pdf.setLineWidth(0.5);
+
+    rows.forEach((row, rowIndex) => {
+        if (y + rowHeight > pageHeight - 20) { 
+            pdf.addPage();
+            y = 20; 
+            pdf.text("SIP Calculator Results (Contd.)", 14, 15);
+        }
+
         let cols = row.querySelectorAll('th, td');
-        let rowData = [];
-        cols.forEach(col => rowData.push(col.innerText));
-        pdf.text(rowData.join('  '), 10, y);
-        y += 10;
+        let x = 14;
+
+        cols.forEach((col, colIndex) => {
+            pdf.text(col.innerText, x + 2, y);
+            x += 60;
+
+           
+            pdf.line(x, y - 5, x, y + 5);
+        });
+
+       
+        pdf.line(14, y - 5, 14 + (60 * cols.length), y - 5); 
+        pdf.line(14, y + 5, 14 + (60 * cols.length), y + 5); 
+
+        y += rowHeight;
     });
 
     pdf.save("SIP_Calculator.pdf");
