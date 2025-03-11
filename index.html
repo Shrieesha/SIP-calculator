@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SIP Calculator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -39,102 +40,168 @@
         button:hover {
             background-color: #45a049;
         }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        .controls {
+            width: 48%;
+            min-width: 300px;
+        }
+        .chart-container {
+            width: 48%;
+            min-width: 300px;
+            height: 300px;
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .summary {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        .invest-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            text-decoration: none;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .invest-button:hover {
+            background-color: #45a049;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-height: 400px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #fff;
+        }
+        .year-separator {
+            font-weight: bold;
+            background-color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
 
 <section id="sip-calculator">
-    <h2>SIP Calculator (5 Years)</h2>
-    <label>Monthly Investment (₹): </label>
-    <input type="number" id="monthlyInvestment" value="1000" /><br />
-    <label>Increment Rate (%): </label>
-    <input type="number" id="incrementRate" value="5" /><br />
-    <button onclick="calculateSIP()">Calculate</button>
-    <button onclick="downloadPDF()">Download PDF</button>
+    <div class="container">
+        <div class="controls">
+            <h2>SIP Calculator (5 Years)</h2>
+            <label>Monthly Investment (₹): </label>
+            <input type="number" id="monthlyInvestment" value="1000" /><br />
+            <label>Expected Return Rate (p.a): </label>
+            <input type="number" id="incrementRate" value="5" /><br />
+            <label>Time Period (Years): </label>
+            <input type="number" id="timePeriod" value="5" /><br />
+            <button onclick="calculateSIP()">Calculate</button>
+            <button onclick="downloadPDF()">Download PDF</button>
+            <a href="https://giisfinancial.com" target="_blank" class="invest-button">INVEST NOW</a>
+        </div>
 
-    <table id="resultTable">
-        <thead>
-            <tr>
-                <th>Month</th>
-                <th>Investment (₹)</th>
-                <th>Invested Value (₹)</th>
-                <th>Rate of Increment (%)</th>
-                <th>Total Increased Value (₹)</th>
-                <th>Total Value (₹)</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+        <div class="chart-container">
+            <canvas id="sipChart"></canvas>
+        </div>
+    </div>
+
+    <div class="summary">
+        <p>Invested Amount: ₹<span id="investedAmount">0</span></p>
+        <p>Est. Returns: ₹<span id="estimatedReturns">0</span></p>
+        <p>Total Value: ₹<span id="totalValue">0</span></p>
+    </div>
+
+    <div class="table-container">
+        <table id="resultTable">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Investment (₹)</th>
+                    <th>Invested Value (₹)</th>
+                    <th>Rate of Increment (%)</th>
+                    <th>Total Increased Value (₹)</th>
+                    <th>Total Value (₹)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </section>
 
 <script>
+function updateChart(investedAmount, returns) {
+    const ctx = document.getElementById('sipChart').getContext('2d');
+    if (window.sipChart) window.sipChart.destroy();
+
+    window.sipChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Invested Amount', 'Estimated Returns'],
+            datasets: [{
+                data: [investedAmount, returns],
+                backgroundColor: ['#d1c4e9', '#5c6bc0'],
+                hoverBackgroundColor: ['#b39ddb', '#3949ab']
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            }
+        }
+    });
+}
+
 function calculateSIP() {
     const monthlyInvestment = parseFloat(document.getElementById('monthlyInvestment').value);
     const incrementRate = parseFloat(document.getElementById('incrementRate').value) / 100;
-    const tableBody = document.querySelector('#resultTable tbody');
+    const timePeriod = parseInt(document.getElementById('timePeriod').value);
+    let investedValue = 0;
+    let totalValue = 0;
 
+    let tableBody = document.querySelector('#resultTable tbody');
     tableBody.innerHTML = '';
 
-    let total = 0;
-    let investedValue = 0;
-    let increasedValue = 0;
+    for (let month = 1; month <= timePeriod * 12; month++) {
+        investedValue += monthlyInvestment;
 
-    for (let month = 1; month <= 60; month++) {
-        investedValue = total + monthlyInvestment;
-        increasedValue = investedValue * incrementRate;
-        total = investedValue + increasedValue;
-
-        tableBody.innerHTML += `
-            <tr>
-                <td>${month}</td>
-                <td>${monthlyInvestment.toFixed(2)}</td>
-                <td>${investedValue.toFixed(2)}</td>
-                <td>${(incrementRate * 100).toFixed(2)}%</td>
-                <td>${increasedValue.toFixed(2)}</td>
-                <td>${total.toFixed(2)}</td>
-            </tr>`;
-    }
-}
-
-function downloadPDF() {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF();
-
-    pdf.setFontSize(14);
-    pdf.text("SIP Calculator Results", 14, 15);
-
-    const table = document.getElementById('resultTable');
-    const rows = table.querySelectorAll('tr');
-
-    let y = 30;
-    let pageHeight = pdf.internal.pageSize.height;
-    let rowHeight = 10;
-
-    pdf.setLineWidth(0.5);
-
-    rows.forEach((row) => {
-        if (y + rowHeight > pageHeight - 20) {
-            pdf.addPage();
-            y = 20;
-            pdf.text("SIP Calculator Results (Contd.)", 14, 15);
+        if (month % 12 === 0) {
+            totalValue = investedValue * Math.pow((1 + incrementRate), Math.floor(month / 12));
+        } else {
+            totalValue += monthlyInvestment;
         }
 
-        let cols = row.querySelectorAll('th, td');
-        let x = 14;
+        let row = `<tr>
+            <td>${month}</td>
+            <td>${monthlyInvestment.toFixed(2)}</td>
+            <td>${investedValue.toFixed(2)}</td>
+            <td>${(incrementRate * 100).toFixed(2)}</td>
+            <td>${(totalValue - investedValue).toFixed(2)}</td>
+            <td>${totalValue.toFixed(2)}</td>
+        </tr>`;
 
-        cols.forEach((col) => {
-            pdf.text(col.innerText, x + 2, y);
-            x += 35;
-            pdf.line(x, y - 5, x, y + 5);
-        });
+        tableBody.innerHTML += row;
 
-        pdf.line(14, y - 5, 14 + (35 * cols.length), y - 5);
-        pdf.line(14, y + 5, 14 + (35 * cols.length), y + 5);
+        if (month % 12 === 0) {
+            tableBody.innerHTML += `<tr class='year-separator'><td colspan='6'>End of Year ${month / 12}</td></tr>`;
+        }
+    }
 
-        y += rowHeight;
-    });
-
-    pdf.save("SIP_Calculator.pdf");
+    updateChart(investedValue, totalValue - investedValue);
 }
 </script>
 
