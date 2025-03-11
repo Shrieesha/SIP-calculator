@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SIP Calculator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -107,7 +108,7 @@
             <label>Time Period (Years): </label>
             <input type="number" id="timePeriod" value="5" /><br />
             <button onclick="calculateSIP()">Calculate</button>
-            <button onclick="downloadPDF()">Download PDF</button>
+            <button id="downloadPdfButton" onclick="downloadPDF()">Download PDF</button>
             <a href="https://giisfinancial.com" target="_blank" class="invest-button">INVEST NOW</a>
         </div>
 
@@ -178,14 +179,12 @@ function calculateSIP() {
 
     for (let month = 1; month <= timePeriod * 12; month++) {
         investedValue += monthlyInvestment;
-
+        totalValue += monthlyInvestment;
         if (month % 12 === 0) {
-            totalValue = investedValue * Math.pow((1 + incrementRate), Math.floor(month / 12));
-        } else {
-            totalValue += monthlyInvestment;
+            totalValue *= (1 + incrementRate);
         }
 
-        let row = `<tr>
+        tableBody.innerHTML += `<tr>
             <td>${month}</td>
             <td>${monthlyInvestment.toFixed(2)}</td>
             <td>${investedValue.toFixed(2)}</td>
@@ -193,15 +192,15 @@ function calculateSIP() {
             <td>${(totalValue - investedValue).toFixed(2)}</td>
             <td>${totalValue.toFixed(2)}</td>
         </tr>`;
-
-        tableBody.innerHTML += row;
-
-        if (month % 12 === 0) {
-            tableBody.innerHTML += `<tr class='year-separator'><td colspan='6'>End of Year ${month / 12}</td></tr>`;
-        }
     }
 
     updateChart(investedValue, totalValue - investedValue);
+}
+
+function downloadPDF() {
+    const doc = new jspdf.jsPDF();
+    doc.autoTable({ html: '#resultTable' });
+    doc.save('sip-calculator.pdf');
 }
 </script>
 
