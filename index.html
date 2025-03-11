@@ -57,6 +57,9 @@
             <tr>
                 <th>Month</th>
                 <th>Investment (₹)</th>
+                <th>Invested Value (₹)</th>
+                <th>Rate of Increment (%)</th>
+                <th>Total Increased Value (₹)</th>
                 <th>Total Value (₹)</th>
             </tr>
         </thead>
@@ -73,17 +76,23 @@ function calculateSIP() {
     tableBody.innerHTML = '';
 
     let total = 0;
-    let currentInvestment = monthlyInvestment;
+    let investedValue = 0;
+    let increasedValue = 0;
 
     for (let month = 1; month <= 60; month++) {
-        total += currentInvestment;
+        investedValue = total + monthlyInvestment;
+        increasedValue = investedValue * incrementRate;
+        total = investedValue + increasedValue;
+
         tableBody.innerHTML += `
             <tr>
                 <td>${month}</td>
-                <td>${currentInvestment.toFixed(2)}</td>
+                <td>${monthlyInvestment.toFixed(2)}</td>
+                <td>${investedValue.toFixed(2)}</td>
+                <td>${(incrementRate * 100).toFixed(2)}%</td>
+                <td>${increasedValue.toFixed(2)}</td>
                 <td>${total.toFixed(2)}</td>
             </tr>`;
-        currentInvestment += currentInvestment * incrementRate;
     }
 }
 
@@ -103,27 +112,24 @@ function downloadPDF() {
 
     pdf.setLineWidth(0.5);
 
-    rows.forEach((row, rowIndex) => {
-        if (y + rowHeight > pageHeight - 20) { 
+    rows.forEach((row) => {
+        if (y + rowHeight > pageHeight - 20) {
             pdf.addPage();
-            y = 20; 
+            y = 20;
             pdf.text("SIP Calculator Results (Contd.)", 14, 15);
         }
 
         let cols = row.querySelectorAll('th, td');
         let x = 14;
 
-        cols.forEach((col, colIndex) => {
+        cols.forEach((col) => {
             pdf.text(col.innerText, x + 2, y);
-            x += 60;
-
-           
+            x += 35;
             pdf.line(x, y - 5, x, y + 5);
         });
 
-       
-        pdf.line(14, y - 5, 14 + (60 * cols.length), y - 5); 
-        pdf.line(14, y + 5, 14 + (60 * cols.length), y + 5); 
+        pdf.line(14, y - 5, 14 + (35 * cols.length), y - 5);
+        pdf.line(14, y + 5, 14 + (35 * cols.length), y + 5);
 
         y += rowHeight;
     });
